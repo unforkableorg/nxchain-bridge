@@ -19,7 +19,7 @@ describe("Balance Check", function () {
       
       console.log(`Balance of ${address}:`);
       console.log(`Raw balance: ${balance.toString()} wei`);
-      console.log(`Formatted balance: ${balanceInEther} NX`);
+      console.log(`Formatted balance: ${balanceInEther} CXS`);
       
       // Basic assertion to ensure we got a valid balance
       expect(balance).to.be.gte(0);
@@ -28,4 +28,6 @@ describe("Balance Check", function () {
       throw error;
     }
   });
-}); 
+
+
+});

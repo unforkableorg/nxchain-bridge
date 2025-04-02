@@ -14,10 +14,6 @@ const config: HardhatUserConfig = {
     nxchainFork: {
       url: "https://rpc.nxchainscan.com/",
       chainId: 785,
-      forking: {
-        url: "https://rpc.nxchainscan.com/",
-        blockNumber: 1,
-      },
     },  
     substrate: {
       url: "http://localhost:8545",
