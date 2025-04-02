@@ -1,15 +1,12 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { CxsBurner } from "../typechain-types";
 
 describe("CxsBurner", function () {
   let cxsBurner: any;
-  let owner: any;
   let addr1: any;
-  let addr2: any;
 
   beforeEach(async function () {
-    [owner, addr1, addr2] = await ethers.getSigners();
+    [addr1] = await ethers.getSigners();
     const CxsBurner = await ethers.getContractFactory("CxsBurner");
     cxsBurner = await CxsBurner.deploy();
     await cxsBurner.waitForDeployment();

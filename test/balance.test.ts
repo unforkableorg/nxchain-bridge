@@ -28,6 +28,4 @@ describe("Balance Check", function () {
       throw error;
     }
   });
-
-
 });
