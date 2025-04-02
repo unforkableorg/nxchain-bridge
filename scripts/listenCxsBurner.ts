@@ -1,20 +1,8 @@
 import { ethers } from "hardhat";
 
-async function main() {
-  // Adresse du contrat CxsBurner (à remplacer par l'adresse réelle après déploiement)
-  const cxsBurnerAddress = "";
-  
-  // Connexion au réseau
-  const provider = new ethers.JsonRpcProvider("https://rpc.nxchainscan.com/");
-  
-  // Création d'une instance du contrat avec le provider
-  const CxsBurner = await ethers.getContractFactory("CxsBurner");
-  const cxsBurner = CxsBurner.attach(cxsBurnerAddress).connect(provider);
-
-  console.log("Démarrage de l'écoute des événements CxsBurner...");
-
+async function setupEventListeners(cxsBurner: any) {
   // Écoute de l'événement CxsReceived
-  cxsBurner.on("CxsReceived", (from, amount, event) => {
+  cxsBurner.on("CxsReceived", (from: string, amount: bigint, event: any) => {
     console.log("\nNouvelle transaction CXS reçue:");
     console.log(`De: ${from}`);
     console.log(`Montant: ${ethers.formatEther(amount)} CXS`);
@@ -22,19 +10,66 @@ async function main() {
   });
 
   // Écoute de l'événement CxsBurned
-  cxsBurner.on("CxsBurned", (amount, event) => {
+  cxsBurner.on("CxsBurned", (amount: bigint, event: any) => {
     console.log("\nCXS brûlés:");
     console.log(`Montant brûlé: ${ethers.formatEther(amount)} CXS`);
     console.log(`Hash de la transaction: ${event.log.transactionHash}`);
   });
 
   // Gestion des erreurs
-  cxsBurner.on("error", (error) => {
+  cxsBurner.on("error", (error: Error) => {
     console.error("Erreur lors de l'écoute des événements:", error);
   });
 }
 
+async function main() {
+  const cxsBurnerAddress = ""; // À remplir avec l'adresse du contrat
+  const RPC_URL = "https://rpc.nxchainscan.com/";
+  const RECONNECT_DELAY = 5000; // 5 secondes
+
+  while (true) {
+    try {
+      console.log("Connexion au réseau NXChain...");
+      const provider = new ethers.JsonRpcProvider(RPC_URL);
+      
+      // Vérification de la connexion
+      await provider.getNetwork();
+      console.log("Connecté au réseau NXChain");
+
+      // Création d'une instance du contrat avec le provider
+      const CxsBurner = await ethers.getContractFactory("CxsBurner");
+      const cxsBurner = CxsBurner.attach(cxsBurnerAddress).connect(provider);
+
+      console.log("Démarrage de l'écoute des événements CxsBurner...");
+      await setupEventListeners(cxsBurner);
+
+      // Attendre que le provider soit déconnecté
+      await new Promise((resolve) => {
+        provider.on("error", () => resolve(null));
+        provider.on("disconnect", () => resolve(null));
+      });
+
+      console.log("Déconnexion détectée, tentative de reconnexion...");
+      await new Promise(resolve => setTimeout(resolve, RECONNECT_DELAY));
+
+    } catch (error) {
+      console.error("Erreur:", error);
+      console.log(`Tentative de reconnexion dans ${RECONNECT_DELAY/1000} secondes...`);
+      await new Promise(resolve => setTimeout(resolve, RECONNECT_DELAY));
+    }
+  }
+}
+
+// Gestion des erreurs non capturées
+process.on("uncaughtException", (error) => {
+  console.error("Erreur non capturée:", error);
+});
+
+process.on("unhandledRejection", (error) => {
+  console.error("Promesse rejetée non gérée:", error);
+});
+
 main().catch((error) => {
-  console.error(error);
+  console.error("Erreur fatale:", error);
   process.exitCode = 1;
 }); 
