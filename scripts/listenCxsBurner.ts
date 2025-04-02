@@ -1,4 +1,8 @@
 import { ethers } from "hardhat";
+// Import de la fonction depuis un fichier séparé
+import { mintNewTokens } from './mintTokens';
+
+
 
 async function setupEventListeners(cxsBurner: any) {
   // Écoute de l'événement CxsReceived
@@ -10,10 +14,22 @@ async function setupEventListeners(cxsBurner: any) {
   });
 
   // Écoute de l'événement CxsBurned
-  cxsBurner.on("CxsBurned", (amount: bigint, event: any) => {
+  cxsBurner.on("CxsBurned", async (amount: bigint, event: any) => {
     console.log("\nCXS brûlés:");
     console.log(`Montant brûlé: ${ethers.formatEther(amount)} CXS`);
     console.log(`Hash de la transaction: ${event.log.transactionHash}`);
+
+    // Récupérer l'adresse de l'expéditeur de la transaction
+    const tx = await event.log.getTransaction();
+    const from = tx.from;
+
+    // Appel de la fonction de minting
+    const success = await mintNewTokens(from, amount, event.log.transactionHash);
+    if (success) {
+      console.log(`Minting des tokens initié avec succès pour l'adresse ${from}`);
+    } else {
+      console.log(`Échec du minting des tokens pour l'adresse ${from}`);
+    }
   });
 
   // Gestion des erreurs
