@@ -3,7 +3,7 @@ import { ethers } from "hardhat";
 
 describe("Balance Check", function () {
   it("Should get the balance of the specified address", async function () {
-    const address = "0x46d1caa3d94414088ee14a5a259070610fd00150";
+    const address = "0x18b6d79c98b01b2b00ead42066b074cdc45ea343";
     
     try {
       // Log the current network

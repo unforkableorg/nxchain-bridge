@@ -11,7 +11,7 @@ const config: HardhatUserConfig = {
         blockNumber: 1,
       },
     },
-    nxchainFork: {
+    nxchain: {
       url: "https://rpc.nxchainscan.com/",
       chainId: 785,
     },  

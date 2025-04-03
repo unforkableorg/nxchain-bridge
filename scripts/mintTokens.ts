@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers } from "ethers";
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
@@ -43,7 +43,7 @@ export async function mintNewTokens(
 ): Promise<boolean> {
   try {
     console.log(`Préparation du transfert de tokens à l'adresse ${to}`);
-    console.log(`Montant: ${ethers.formatEther(amount)}`);
+    console.log(`Montant à transférer: ${ethers.formatEther(amount)}`);
     console.log(`Transaction source: ${transactionHash}`);
 
     // Vérifier si la transaction a déjà été traitée
@@ -67,28 +67,22 @@ export async function mintNewTokens(
     const reserveBalance = await provider.getBalance(wallet.address);
     console.log(`Solde du compte de réserve: ${ethers.formatEther(reserveBalance)}`);
     
-    // Appliquer le taux de conversion
-    const conversionRate = process.env.CONVERSION_RATE ? parseFloat(process.env.CONVERSION_RATE) : 1.0;
-    const convertedAmount = amount * BigInt(Math.floor(conversionRate * 100)) / BigInt(100);
-    
-    console.log(`Montant après conversion: ${ethers.formatEther(convertedAmount)}`);
-    
     // Si le compte de réserve a un solde insuffisant
-    if (reserveBalance < convertedAmount) {
-      throw new Error(`Solde insuffisant dans le compte de réserve. Nécessaire: ${ethers.formatEther(convertedAmount)}, Disponible: ${ethers.formatEther(reserveBalance)}`);
+    if (reserveBalance < amount) {
+      throw new Error(`Solde insuffisant dans le compte de réserve. Nécessaire: ${ethers.formatEther(amount)}, Disponible: ${ethers.formatEther(reserveBalance)}`);
     }
     
     // Effectuer le transfert en utilisant l'API EVM
     const tx = await wallet.sendTransaction({
       to: to,
-      value: convertedAmount
+      value: amount
     });
     
     console.log(`Transaction envoyée: ${tx.hash}`);
     
     // Attendre la confirmation
     const receipt = await tx.wait();
-    console.log(`Transaction confirmée dans le bloc ${receipt?.blockNumber}`);
+    console.log(`Transaction confirmée dans le bloc ${receipt?.blockNumber} de la substrate chain`);
     
     // Marquer la transaction comme traitée
     markTransactionAsProcessed(transactionHash);
