@@ -17,4 +17,7 @@ node_modules
 # Hardhat Ignition default folder for deployments against a local node
 ignition/deployments/chain-31337
 
+# Data files
+/data/processed_transactions.json
+/data/burnLogs.json
 
