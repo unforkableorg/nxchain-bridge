@@ -1,8 +1,9 @@
 import { ethers } from "hardhat";
 // Import de la fonction depuis un fichier séparé
 import { mintNewTokens } from './mintTokens';
+import dotenv from 'dotenv';
 
-
+dotenv.config();
 
 async function setupEventListeners(cxsBurner: any) {
   // Écoute de l'événement CxsReceived
@@ -26,9 +27,9 @@ async function setupEventListeners(cxsBurner: any) {
     // Appel de la fonction de minting
     const success = await mintNewTokens(from, amount, event.log.transactionHash);
     if (success) {
-      console.log(`Minting des tokens initié avec succès pour l'adresse ${from}`);
+      console.log(`Transfert des tokens initié avec succès pour l'adresse ${from}`);
     } else {
-      console.log(`Échec du minting des tokens pour l'adresse ${from}`);
+      console.log(`Échec du transfert des tokens pour l'adresse ${from}`);
     }
   });
 
@@ -39,9 +40,18 @@ async function setupEventListeners(cxsBurner: any) {
 }
 
 async function main() {
-  const cxsBurnerAddress = ""; // À remplir avec l'adresse du contrat
-  const RPC_URL = "https://rpc.nxchainscan.com/";
+  const cxsBurnerAddress = process.env.CXSBURNER_CONTRACT_ADDRESS || ""; // Adresse du contrat depuis .env
+  const RPC_URL = process.env.NXCHAIN_RPC_URL || "https://rpc.nxchainscan.com/";
   const RECONNECT_DELAY = 5000; // 5 secondes
+
+  if (!cxsBurnerAddress) {
+    console.error("Erreur: L'adresse du contrat CxsBurner n'est pas configurée dans le fichier .env");
+    process.exit(1);
+  }
+
+  console.log(`Démarrage du bridge pour le contrat CxsBurner à l'adresse: ${cxsBurnerAddress}`);
+  console.log(`RPC NXChain: ${RPC_URL}`);
+  console.log(`RPC Substrate: ${process.env.SUBSTRATE_EVM_RPC_URL}`);
 
   while (true) {
     try {
