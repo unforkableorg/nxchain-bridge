@@ -32,7 +32,6 @@ async function main() {
       } else {
         console.log("Aucun nouveau block à traiter");
       }
-
       // Attendre avant la prochaine itération
       await new Promise(resolve => setTimeout(resolve, 5000));
     } catch (error) {
