@@ -1,0 +1,20 @@
+[
+  {
+    "burnTxHash": "0xd72e2d0bc33cdb3f093a7a86003f434b082336ad90a8aa3a5bf0c853489ef7d4",
+    "mintTxHash": "0x607275d2bd5d1a1faa593893ae3843bf24851c0c142437d32b3d3ae292adae9b",
+    "to": "0x18B6D79c98B01b2b00EaD42066b074CdC45Ea343",
+    "amount": "100000000000000000000",
+    "timestamp": 1743758655111,
+    "status": "completed",
+    "retryCount": 0
+  },
+  {
+    "burnTxHash": "0xe562c520b3e1ce08b4b450cc8a6f46f402d10759f04d201592171d2ed1053a5f",
+    "mintTxHash": "0x66176e78a835209287b92f839f517a4dbb8f19f82e1852d172c44620a108b9bf",
+    "to": "0x18B6D79c98B01b2b00EaD42066b074CdC45Ea343",
+    "amount": "111082836623643341493",
+    "timestamp": 1743758659409,
+    "status": "completed",
+    "retryCount": 0
+  }
+]

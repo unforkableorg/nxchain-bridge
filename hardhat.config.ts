@@ -1,5 +1,12 @@
-import { HardhatUserConfig } from "hardhat/config";
+import { HardhatUserConfig, task } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+
+// Définition de la tâche testProcess
+task("testProcess", "Execute the test process script")
+  .setAction(async (taskArgs, hre) => {
+    const { testProcess } = await import("./scripts/testProcess");
+    await testProcess();
+  });
 
 const config: HardhatUserConfig = {
   solidity: "0.8.28",
