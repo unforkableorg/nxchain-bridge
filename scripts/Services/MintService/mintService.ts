@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { getMintLogsFile } from "../../configProcess";
 
-interface MintLog {
+export interface MintLog {
   burnTxHash: string;      // Hash de la transaction de burn sur NXChain
   mintTxHash: string;      // Hash de la transaction de mint sur Substrate
   to: string;             // Adresse de destination
