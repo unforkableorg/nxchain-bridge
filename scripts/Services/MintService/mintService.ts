@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import fs from 'fs';
 import path from 'path';
-import { MINT_LOGS_FILE } from "../configProcess";
+import { getMintLogsFile } from "../../configProcess";
 
 interface MintLog {
   burnTxHash: string;      // Hash de la transaction de burn sur NXChain
@@ -26,23 +26,18 @@ export class MintService {
   }
 
   private initializeMintLogs(): void {
-    if (!fs.existsSync(path.dirname(MINT_LOGS_FILE))) {
-      fs.mkdirSync(path.dirname(MINT_LOGS_FILE), { recursive: true });
+    const mintLogsFile = getMintLogsFile();
+    if (!fs.existsSync(path.dirname(mintLogsFile))) {
+      fs.mkdirSync(path.dirname(mintLogsFile), { recursive: true });
     }
-
-    try {
-      if (fs.existsSync(MINT_LOGS_FILE)) {
-        this.mintLogs = JSON.parse(fs.readFileSync(MINT_LOGS_FILE, 'utf8'));
-      } else {
-        fs.writeFileSync(MINT_LOGS_FILE, JSON.stringify([]));
-      }
-    } catch (error) {
-      console.error("Erreur lors du chargement des logs de mint:", error);
+    if (fs.existsSync(mintLogsFile)) {
+      const data = fs.readFileSync(mintLogsFile, 'utf8');
+      this.mintLogs = JSON.parse(data);
     }
   }
 
   private saveMintLogs(): void {
-    fs.writeFileSync(MINT_LOGS_FILE, JSON.stringify(this.mintLogs, null, 2));
+    fs.writeFileSync(getMintLogsFile(), JSON.stringify(this.mintLogs, null, 2));
   }
 
   private async cleanupPendingTransactions(): Promise<void> {

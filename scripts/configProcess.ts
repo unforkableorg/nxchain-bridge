@@ -1,12 +1,18 @@
 import { ethers } from "ethers";
 import path from 'path';
 
+// Configuration du mode test
+let isTestMode = false;
+export const setTestMode = (testMode: boolean) => {
+    isTestMode = testMode;
+};
+
 // Configuration des dossiers
-export const DATA_DIR = path.join(process.cwd(), "data");
-export const LAST_PROCESSED_BLOCK_FILE = path.join(DATA_DIR, 'lastProcessedBlock.json');
-export const BURN_LOGS_FILE = path.join(DATA_DIR, 'burnLogs.json');
-export const MINT_LOGS_FILE = path.join(DATA_DIR, 'mintLogs.json');
-export const PROCESSED_TX_FILE = path.join(DATA_DIR, 'processed_transactions.json');
+export const getDataDir = () => path.join(process.cwd(), isTestMode ? "test/integration/data" : "data");
+export const getLastProcessedBlockFile = () => path.join(getDataDir(), 'lastProcessedBlock.json');
+export const getBurnLogsFile = () => path.join(getDataDir(), 'burnLogs.json');
+export const getMintLogsFile = () => path.join(getDataDir(), 'mintLogs.json');
+export const getProcessedTxFile = () => path.join(getDataDir(), 'processed_transactions.json');
 
 // Configuration des paramètres
 export const CONFIRMATIONS_REQUIRED = 10;

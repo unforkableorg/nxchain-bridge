@@ -1,4 +1,3 @@
-
 node_modules
 .env
 
@@ -18,6 +17,11 @@ node_modules
 ignition/deployments/chain-31337
 
 # Data files
-/data/processed_transactions.json
-/data/burnLogs.json
 
+data/burnLogs.json
+data/mintLogs.json
+data/lastProcessedBlock.json
+
+test/integration/data/burnLogs.json
+test/integration/data/mintLogs.json
+test/integration/data/lastProcessedBlock.json

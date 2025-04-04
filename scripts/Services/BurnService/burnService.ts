@@ -5,8 +5,13 @@ import {
   NATIVE_CONVERSION_RATE, 
   ERC20_CONVERSION_RATE,
   BurnLog
-  } from "../configProcess";
-import { saveLastProcessedBlock, saveBurnLogs, deduplicateLogs } from "../Utils/utils";
+  } from "../../configProcess";
+import { saveLastProcessedBlock, saveBurnLogs, deduplicateLogs } from "../../Utils/utils";
+
+const BURN_LOG_TYPES = {
+  NATIVE: 'native',
+  ERC20: 'erc20'
+} as const;
 
 export class BurnService {
   private provider: ethers.JsonRpcProvider;
@@ -19,6 +24,26 @@ export class BurnService {
     this.existingLogs = [];
     this.processedTxHashes = new Set();
     this.newLogs = [];
+  }
+
+  private createBurnLog(
+    from: string,
+    amount: bigint,
+    originalAmount: bigint,
+    transactionHash: string,
+    type: typeof BURN_LOG_TYPES[keyof typeof BURN_LOG_TYPES],
+    blockNumber: number,
+    timestamp: number
+  ): BurnLog {
+    return {
+      from,
+      amount,
+      originalAmount,
+      transactionHash,
+      type,
+      blockNumber,
+      timestamp
+    };
   }
 
   async processNativeTransaction(log: any, tx: any, block: any): Promise<BurnLog | null> {
@@ -36,21 +61,21 @@ export class BurnService {
     console.log(`Montant converti: ${ethers.formatEther(convertedAmount)} REVO`);
     console.log(`Hash de la transaction: ${log.transactionHash}`);
 
-    const burnLog: BurnLog = {
-      from: tx.from,
-      amount: convertedAmount,
-      originalAmount: amount,
-      transactionHash: log.transactionHash,
-      type: 'native',
-      blockNumber: log.blockNumber,
-      timestamp: block.timestamp
-    };
+    const burnLog = this.createBurnLog(
+      tx.from,
+      convertedAmount,
+      amount,
+      log.transactionHash,
+      BURN_LOG_TYPES.NATIVE,
+      log.blockNumber,
+      block.timestamp
+    );
 
     this.newLogs.push(burnLog);
     return burnLog;
   }
 
-  async processERC20Transaction(log: any, tx: any, block: any): Promise<BurnLog | null> {
+  async processERC20Transaction(log: any, block: any): Promise<BurnLog | null> {
     const iface = new ethers.Interface(["event Transfer(address indexed from, address indexed to, uint256 value)"]);
     const decodedLog = iface.parseLog(log);
     
@@ -72,15 +97,15 @@ export class BurnService {
     console.log(`Montant converti: ${ethers.formatEther(convertedAmount)} NexStep`);
     console.log(`Hash de la transaction: ${log.transactionHash}`);
 
-    const burnLog: BurnLog = {
-      from: from,
-      amount: convertedAmount,
-      originalAmount: amount,
-      transactionHash: log.transactionHash,
-      type: 'erc20',
-      blockNumber: log.blockNumber,
-      timestamp: block.timestamp
-    };
+    const burnLog = this.createBurnLog(
+      from,
+      convertedAmount,
+      amount,
+      log.transactionHash,
+      BURN_LOG_TYPES.ERC20,
+      log.blockNumber,
+      block.timestamp
+    );
 
     this.newLogs.push(burnLog);
     return burnLog;
@@ -130,11 +155,10 @@ export class BurnService {
     for (const log of erc20Logs) {
       if (this.processedTxHashes.has(log.transactionHash)) continue;
 
-      const tx = await this.provider.getTransaction(log.transactionHash);
       const block = await this.provider.getBlock(log.blockNumber);
-      if (!tx || !block) continue;
+      if (!block) continue;
 
-      const burnLog = await this.processERC20Transaction(log, tx, block);
+      const burnLog = await this.processERC20Transaction(log, block);
       if (burnLog) {
         this.processedTxHashes.add(log.transactionHash);
         burnLogs.push(burnLog);
