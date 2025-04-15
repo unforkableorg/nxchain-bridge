@@ -88,7 +88,7 @@ export class BurnService {
       console.log(`Transaction ${log.transactionHash} ignorée car le montant est 0`);
       return null;
     }
-
+    // TODO:format le amount en nombre à virgule avant la conversion. format ether en precision fixe 3 chifre après la virgule 
     const convertedAmount = (amount * BigInt(Math.floor(ERC20_CONVERSION_RATE * 1000000))) / BigInt(1000000);
     
     console.log(`\nTransaction NexStep reçue:`);

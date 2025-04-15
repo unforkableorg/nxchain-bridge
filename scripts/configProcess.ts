@@ -26,6 +26,7 @@ export const SUBSTRATE_EVM_RPC_URL = process.env.SUBSTRATE_EVM_RPC_URL;
 if (!SUBSTRATE_EVM_RPC_URL) {
   throw new Error("SUBSTRATE_EVM_RPC_URL n'est pas configuré");
 }
+// TODO idem pour le taux de conversion
 
 // Initialisation des providers
 export const nxchainProvider = new ethers.JsonRpcProvider(NXCHAIN_RPC_URL);

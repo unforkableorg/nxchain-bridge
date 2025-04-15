@@ -29,5 +29,5 @@ import {
   }
   
   const secret = response.SecretString;
-  
+  console.log(secret);
   // Your code goes here
