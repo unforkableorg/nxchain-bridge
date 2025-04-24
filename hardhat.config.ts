@@ -17,8 +17,8 @@ const config: HardhatUserConfig = {
       chainId: 785,
     },  
     substrate: {
-      url: "http://localhost:8545",
-      chainId: 42,  // Chain ID pour le réseau de test Substrate      
+      url: "http://13.49.46.28:8545",
+      chainId: 42025,  // Chain ID pour le réseau de test Substrate      
     },
   }, 
 };
