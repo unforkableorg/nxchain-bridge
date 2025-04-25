@@ -1,24 +1,91 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useChainId, useSendTransaction } from 'wagmi';
+import { useAccount, useChainId, useSendTransaction, useWriteContract } from 'wagmi';
+import type { UseWriteContractReturnType } from 'wagmi';
 import { TransactionStatus } from '@/components/TransactionStatus';
 import { RecentTransactions } from '@/components/RecentTransactions';
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { parseEther, Hash } from 'viem';
+
+// ABI minimal pour le contrat ERC20
+const NEXSTEP_ABI = [
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_spender",
+        "type": "address"
+      },
+      {
+        "name": "_value",
+        "type": "uint256"
+      }
+    ],
+    "name": "approve",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_to",
+        "type": "address"
+      },
+      {
+        "name": "_value",
+        "type": "uint256"
+      }
+    ],
+    "name": "transfer",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+] as const;
+
+// Adresse du contrat NEXSTEP
+const NEXSTEP_ADDRESS = '0x432e4997060f2385bdb32cdc8be815c6b22a8a61' as const;
+
+// Adresse de burn par défaut avec possibilité de surcharge via .env.local
+const DEFAULT_BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD';
+const BURN_ADDRESS = (process.env.NEXT_PUBLIC_BURN_ADDRESS || DEFAULT_BURN_ADDRESS) as `0x${string}`;
+console.log('Configured burn address:', BURN_ADDRESS);
 
 // Types de jetons disponibles
 type TokenType = 'NEXSTEP' | 'CXS';
 
+interface TransactionResult {
+  hash: Hash;
+}
+
 export default function Home() {
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState<string>('');
+  const [recipientAddress, setRecipientAddress] = useState<`0x${string}`>('0x0000000000000000000000000000000000000000');
   const [isLoading, setIsLoading] = useState(false);
-  const [txHash, setTxHash] = useState<string | null>(null);
+  const [txHash, setTxHash] = useState<string>('');
   const [isClient, setIsClient] = useState(false);
   const [selectedToken, setSelectedToken] = useState<TokenType>('NEXSTEP');
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { sendTransactionAsync } = useSendTransaction();
+  
+  const { writeContractAsync: transferNexstep } = useWriteContract();
 
   // Taux de conversion depuis les variables d'environnement
   const NEXSTEP_RATE = process.env.NEXT_PUBLIC_NEXSTEP_TO_REVO_RATE ? parseFloat(process.env.NEXT_PUBLIC_NEXSTEP_TO_REVO_RATE) : 1;
@@ -26,6 +93,8 @@ export default function Home() {
 
   // Calcul du montant de REVO à recevoir
   const revoAmount = amount ? parseFloat(amount) * (selectedToken === 'NEXSTEP' ? NEXSTEP_RATE : CXS_RATE) : 0;
+
+  const [error, setError] = useState<string>('');
 
   // Effet pour s'assurer que le composant ne s'exécute que côté client
   useEffect(() => {
@@ -36,40 +105,72 @@ export default function Home() {
     if (!amount || !isConnected || !address) return;
     
     setIsLoading(true);
+    setError('');
+    
     try {
-      const burnAddress = process.env.NEXT_PUBLIC_BURN_ADDRESS;
-      if (!burnAddress) {
-        throw new Error('Burn address not configured');
-      }
-
+      console.log('Using burn address:', BURN_ADDRESS); // Debug log
+      
       // Convert amount to wei (assuming 18 decimals)
-      const amountWei = BigInt(Math.floor(parseFloat(amount) * 1e18));
+      const amountWei = parseEther(amount);
 
-      if (selectedToken === 'NEXSTEP') {
-        // Logique pour le jeton ERC20 NEXSTEP
-        // Ici, vous devriez appeler la fonction approve du contrat NEXSTEP
-        // puis appeler la fonction burn du contrat Bridge
-        console.log('Burning NEXSTEP tokens...');
-        // Exemple de code (à adapter selon vos contrats) :
-        // const nexstepContract = new ethers.Contract(NEXSTEP_ADDRESS, NEXSTEP_ABI, signer);
-        // await nexstepContract.approve(BRIDGE_ADDRESS, amountWei);
-        // const bridgeContract = new ethers.Contract(BRIDGE_ADDRESS, BRIDGE_ABI, signer);
-        // const tx = await bridgeContract.burn(amountWei);
-        // setTxHash(tx.hash);
-      } else {
-        // Logique pour le jeton natif CXS
-        // Envoyer une transaction native
-        const hash = await sendTransactionAsync({
-          to: burnAddress as `0x${string}`,
-          value: amountWei,
-        });
-        setTxHash(hash);
+      try {
+        if (selectedToken === 'NEXSTEP') {
+          console.log('Initiating NEXSTEP transfer to:', BURN_ADDRESS, 'amount:', amountWei.toString()); // Debug log
+          const hash = await transferNexstep({
+            address: NEXSTEP_ADDRESS,
+            abi: NEXSTEP_ABI,
+            functionName: 'transfer',
+            args: [BURN_ADDRESS, amountWei],
+          });
+          setTxHash(hash);
+        } else {
+          console.log('Initiating CXS transfer to:', BURN_ADDRESS, 'amount:', amountWei.toString()); // Debug log
+          const hash = await sendTransactionAsync({
+            to: BURN_ADDRESS,
+            value: amountWei,
+          });
+          setTxHash(hash);
+        }
+      } catch (txError: any) {
+        // Gérer silencieusement les rejets de transaction
+        if (txError.message?.includes('User rejected') || 
+            txError.details?.includes('User rejected') ||
+            txError.cause?.message?.includes('User rejected')) {
+          console.log('Transaction cancelled');
+          return; // Sortir silencieusement
+        }
+        // Relancer l'erreur si ce n'est pas un rejet utilisateur
+        throw txError;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Bridge error:', error);
-      alert('Failed to bridge tokens. Please try again.');
+      if (error.message?.includes('User rejected') || 
+          error.details?.includes('User rejected') ||
+          error.cause?.message?.includes('User rejected')) {
+        // Ne rien afficher pour les rejets utilisateur
+        return;
+      } else if (error.message?.includes('Configuration:')) {
+        setError(error.message);
+      } else {
+        setError('Échec du bridge. Veuillez réessayer.');
+      }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleTransfer = async () => {
+    try {
+      const hash = await transferNexstep({
+        address: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`,
+        abi: NEXSTEP_ABI,
+        functionName: 'transfer',
+        args: [recipientAddress, parseEther(amount)],
+      });
+      setTxHash(hash);
+    } catch (error) {
+      console.error('Transfer error:', error);
+      alert('Failed to transfer tokens. Please try again.');
     }
   };
 
@@ -152,6 +253,12 @@ export default function Home() {
           <div className="hidden">
             <ConnectButton />
           </div>
+
+          {error && (
+            <div className="p-3 rounded-md bg-red-50 text-red-700 text-sm">
+              {error}
+            </div>
+          )}
 
           <button
             onClick={isConnected ? handleBridge : () => {

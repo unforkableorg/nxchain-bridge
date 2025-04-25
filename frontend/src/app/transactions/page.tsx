@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 interface LogEntry {
@@ -17,6 +18,7 @@ interface LogEntry {
 }
 
 export default function TransactionsPage() {
+  const router = useRouter();
   const [burnLogs, setBurnLogs] = useState<LogEntry[]>([]);
   const [mintLogs, setMintLogs] = useState<LogEntry[]>([]);
   const [activeTab, setActiveTab] = useState<'burn' | 'mint'>('burn');
@@ -123,9 +125,12 @@ export default function TransactionsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
-        <Link href="/" className="text-blue-600 hover:text-blue-800">
+        <button 
+          onClick={() => router.push('/')}
+          className="text-blue-600 hover:text-blue-800 flex items-center"
+        >
           ← Back to Bridge
-        </Link>
+        </button>
       </div>
 
       <div className="mb-6 w-full flex items-center justify-center [&>div]:w-full [&>div>button]:w-full">
