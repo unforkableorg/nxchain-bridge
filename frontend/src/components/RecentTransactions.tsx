@@ -12,6 +12,7 @@ interface LogEntry {
   amount?: string;
   from?: string;
   to?: string;
+  tokenName?: string;
 }
 
 export function RecentTransactions() {
@@ -124,7 +125,7 @@ export function RecentTransactions() {
                   </div>
                   <div className="mt-2 text-sm text-gray-800">
                     <span className="font-medium">Amount: </span>
-                    {log.amount} NX
+                    {log.amount} {log.tokenName}
                   </div>
                   <div className="mt-1 text-xs font-mono text-gray-700 truncate">
                     Tx: {log.txHash}
@@ -151,7 +152,7 @@ export function RecentTransactions() {
                   </div>
                   <div className="mt-2 text-sm text-gray-800">
                     <span className="font-medium">Amount: </span>
-                    {log.amount} NX
+                    {log.amount} {log.tokenName}
                   </div>
                   <div className="mt-1 text-xs font-mono text-gray-700 truncate">
                     Burn Tx: {log.burnTxHash}

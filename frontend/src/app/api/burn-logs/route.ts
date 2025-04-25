@@ -1,4 +1,16 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+
+// Fonction pour formater les montants de wei en ether
+function formatWeiToEther(wei: string): string {
+  // Convertir la chaîne en nombre
+  const weiNumber = BigInt(wei);
+  // Diviser par 10^18 pour obtenir l'ether
+  const etherNumber = Number(weiNumber) / 1e18;
+  // Formater avec 4 décimales maximum
+  return etherNumber.toFixed(4);
+}
 
 // Test data for burn transactions
 const testBurnLogs = [
@@ -31,18 +43,36 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const address = searchParams.get('address');
 
+    // Read logs from file
+    const logsPath = path.join(process.cwd(), '..', 'data', 'burnLogs.json');
+    const logsData = fs.readFileSync(logsPath, 'utf-8');
+    const logs = JSON.parse(logsData);
+
+    // Transform logs to match the expected format
+    const transformedLogs = logs.map((log: any) => {
+      // Convert wei to ether for human readability
+      const formattedAmount = formatWeiToEther(log.amount);
+      
+      return {
+        txHash: log.transactionHash,
+        status: 'success', // Since these are confirmed transactions
+        timestamp: log.timestamp * 1000, // Convert to milliseconds
+        amount: formattedAmount,
+        from: log.from,
+        type: log.type,
+        tokenName: log.type === 'native' ? 'CXS' : 'NexStep'
+      };
+    });
+
     // Filter logs by address if provided
-    let logs = testBurnLogs;
+    let filteredLogs = transformedLogs;
     if (address) {
-      logs = testBurnLogs.filter(log => 
+      filteredLogs = transformedLogs.filter((log: any) => 
         log.from?.toLowerCase() === address.toLowerCase()
       );
     }
 
-    // In production, you would read from a file or database
-    // const logs = JSON.parse(await fs.readFile('burn-logs.json', 'utf-8'));
-    
-    return NextResponse.json(logs);
+    return NextResponse.json(filteredLogs);
   } catch (error) {
     console.error('Error reading burn logs:', error);
     return NextResponse.json({ error: 'Failed to read burn logs' }, { status: 500 });

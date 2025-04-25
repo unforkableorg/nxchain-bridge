@@ -15,6 +15,7 @@ interface LogEntry {
   amount?: string;
   from?: string;
   to?: string;
+  tokenName?: string;
 }
 
 export function TransactionStatus({ txHash }: TransactionStatusProps) {
@@ -94,7 +95,7 @@ export function TransactionStatus({ txHash }: TransactionStatusProps) {
             {burnStatus.amount && (
               <div className="text-sm">
                 <span className="font-medium">Amount: </span>
-                {burnStatus.amount} NX
+                {burnStatus.amount} {burnStatus.tokenName}
               </div>
             )}
             <div className="text-sm">
@@ -125,7 +126,7 @@ export function TransactionStatus({ txHash }: TransactionStatusProps) {
               {mintStatus.amount && (
                 <div className="text-sm">
                   <span className="font-medium">Amount: </span>
-                  {mintStatus.amount} NX
+                  {mintStatus.amount} {mintStatus.tokenName}
                 </div>
               )}
               <div className="text-sm">

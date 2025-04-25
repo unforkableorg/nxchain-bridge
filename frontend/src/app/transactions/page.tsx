@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 interface LogEntry {
   txHash: string;
@@ -12,6 +13,7 @@ interface LogEntry {
   amount?: string;
   from?: string;
   to?: string;
+  tokenName?: string;
 }
 
 export default function TransactionsPage() {
@@ -20,6 +22,8 @@ export default function TransactionsPage() {
   const [activeTab, setActiveTab] = useState<'burn' | 'mint'>('burn');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -90,6 +94,22 @@ export default function TransactionsPage() {
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
   };
 
+  // Pagination logic
+  const currentLogs = activeTab === 'burn' ? burnLogs : mintLogs;
+  const totalPages = Math.ceil(currentLogs.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentItems = currentLogs.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (value: number) => {
+    setItemsPerPage(value);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -108,13 +128,20 @@ export default function TransactionsPage() {
         </Link>
       </div>
 
+      <div className="mb-6 w-full flex items-center justify-center [&>div]:w-full [&>div>button]:w-full">
+        <ConnectButton />
+      </div>
+
       <h1 className="text-2xl font-bold mb-6 text-gray-800">All Transactions</h1>
 
       <div className="mb-6">
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex">
             <button
-              onClick={() => setActiveTab('burn')}
+              onClick={() => {
+                setActiveTab('burn');
+                setCurrentPage(1);
+              }}
               className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
                 activeTab === 'burn'
                   ? 'border-blue-500 text-blue-600'
@@ -124,7 +151,10 @@ export default function TransactionsPage() {
               Burn Transactions
             </button>
             <button
-              onClick={() => setActiveTab('mint')}
+              onClick={() => {
+                setActiveTab('mint');
+                setCurrentPage(1);
+              }}
               className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
                 activeTab === 'mint'
                   ? 'border-blue-500 text-blue-600'
@@ -138,12 +168,29 @@ export default function TransactionsPage() {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-          <p className="mt-2 text-gray-600">Loading transactions...</p>
-        </div>
+        <div className="text-center py-8">Loading transactions...</div>
       ) : (
-        <div className="bg-white shadow-md rounded-lg overflow-hidden">
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600">Show</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                className="border border-gray-300 rounded px-2 py-1 text-sm text-gray-900"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span className="text-sm text-gray-600">entries</span>
+            </div>
+            <div className="text-sm text-gray-600">
+              Showing {startIndex + 1} to {Math.min(endIndex, currentLogs.length)} of {currentLogs.length} entries
+            </div>
+          </div>
+
           {activeTab === 'burn' ? (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -162,13 +209,13 @@ export default function TransactionsPage() {
                       Time
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Transaction Hash
+                      Tx Hash
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {burnLogs.length > 0 ? (
-                    burnLogs.map((log) => (
+                  {currentItems.length > 0 ? (
+                    currentItems.map((log) => (
                       <tr key={log.txHash} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusStyle(log.status)}`}>
@@ -176,7 +223,7 @@ export default function TransactionsPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {log.amount} NX
+                          {log.amount} {log.tokenName}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {formatAddress(log.from || '')}
@@ -186,7 +233,7 @@ export default function TransactionsPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
                           <a 
-                            href={`https://etherscan.io/tx/${log.txHash}`} 
+                            href={`https://ethernal.nxchainscan.com/transaction/${log.txHash}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:text-blue-800"
@@ -232,8 +279,8 @@ export default function TransactionsPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {mintLogs.length > 0 ? (
-                    mintLogs.map((log) => (
+                  {currentItems.length > 0 ? (
+                    currentItems.map((log) => (
                       <tr key={log.mintTxHash} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusStyle(log.status)}`}>
@@ -241,7 +288,7 @@ export default function TransactionsPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {log.amount} NX
+                          {log.amount} {log.tokenName}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {formatAddress(log.to || '')}
@@ -251,7 +298,7 @@ export default function TransactionsPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
                           <a 
-                            href={`https://etherscan.io/tx/${log.burnTxHash}`} 
+                            href={`https://ethernal.nxchainscan.com/transaction/${log.burnTxHash}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:text-blue-800"
@@ -261,10 +308,8 @@ export default function TransactionsPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
                           <a 
-                            href={`https://etherscan.io/tx/${log.mintTxHash}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800"
+                            href={`#`}
+                            className="text-gray-500 hover:text-gray-700 cursor-not-allowed"
                           >
                             {formatAddress(log.mintTxHash || '')}
                           </a>
@@ -280,6 +325,61 @@ export default function TransactionsPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {currentLogs.length > 0 && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handlePageChange(1)}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1 rounded ${
+                    currentPage === 1
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-blue-500 text-white hover:bg-blue-600'
+                  }`}
+                >
+                  First
+                </button>
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1 rounded ${
+                    currentPage === 1
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-blue-500 text-white hover:bg-blue-600'
+                  }`}
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-1 rounded ${
+                    currentPage === totalPages
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-blue-500 text-white hover:bg-blue-600'
+                  }`}
+                >
+                  Next
+                </button>
+                <button
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-1 rounded ${
+                    currentPage === totalPages
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-blue-500 text-white hover:bg-blue-600'
+                  }`}
+                >
+                  Last
+                </button>
+              </div>
             </div>
           )}
         </div>

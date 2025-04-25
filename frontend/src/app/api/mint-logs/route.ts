@@ -1,4 +1,16 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+
+// Fonction pour formater les montants de wei en ether
+function formatWeiToEther(wei: string): string {
+  // Convertir la chaîne en nombre
+  const weiNumber = BigInt(wei);
+  // Diviser par 10^18 pour obtenir l'ether
+  const etherNumber = Number(weiNumber) / 1e18;
+  // Formater avec 4 décimales maximum
+  return etherNumber.toFixed(4);
+}
 
 // Test data for mint transactions
 const testMintLogs = [
@@ -34,18 +46,36 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const address = searchParams.get('address');
 
+    // Read logs from file
+    const logsPath = path.join(process.cwd(), '..', 'data', 'mintLogs.json');
+    const logsData = fs.readFileSync(logsPath, 'utf-8');
+    const logs = JSON.parse(logsData);
+
+    // Transform logs to match the expected format
+    const transformedLogs = logs.map((log: any) => {
+      // Convert wei to ether for human readability
+      const formattedAmount = formatWeiToEther(log.amount);
+      
+      return {
+        burnTxHash: log.burnTxHash,
+        mintTxHash: log.mintTxHash,
+        status: log.status === 'completed' ? 'success' : log.status === 'processing' ? 'pending' : 'failed',
+        timestamp: log.timestamp,
+        amount: formattedAmount,
+        to: log.to,
+        tokenName: 'REVO'
+      };
+    });
+
     // Filter logs by address if provided
-    let logs = testMintLogs;
+    let filteredLogs = transformedLogs;
     if (address) {
-      logs = testMintLogs.filter(log => 
+      filteredLogs = transformedLogs.filter((log: any) => 
         log.to?.toLowerCase() === address.toLowerCase()
       );
     }
 
-    // In production, you would read from a file or database
-    // const logs = JSON.parse(await fs.readFile('mint-logs.json', 'utf-8'));
-    
-    return NextResponse.json(logs);
+    return NextResponse.json(filteredLogs);
   } catch (error) {
     console.error('Error reading mint logs:', error);
     return NextResponse.json({ error: 'Failed to read mint logs' }, { status: 500 });
